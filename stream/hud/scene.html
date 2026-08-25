@@ -100,18 +100,19 @@
 
   /* reticle brackets around the unit */
   .bracket{position:absolute;width:26px;height:26px;border:1px solid var(--hair2);z-index:3;pointer-events:none}
-  .bracket.tl{left:582px;top:474px;border-right:0;border-bottom:0}
-  .bracket.tr{left:826px;top:474px;border-left:0;border-bottom:0}
-  .bracket.bl{left:582px;top:716px;border-right:0;border-top:0}
-  .bracket.br{left:826px;top:716px;border-left:0;border-top:0}
+  .bracket.tl{left:572px;top:452px;border-right:0;border-bottom:0}
+  .bracket.tr{left:836px;top:452px;border-left:0;border-bottom:0}
+  .bracket.bl{left:572px;top:714px;border-right:0;border-top:0}
+  .bracket.br{left:836px;top:714px;border-left:0;border-top:0}
   .dim{position:absolute;z-index:3;font-family:var(--mono);font-size:9.5px;letter-spacing:.3em;color:var(--dim2);pointer-events:none}
-  .dim.top{left:582px;top:458px;width:270px;text-align:center}
+  .dim.top{left:572px;top:436px;width:290px;text-align:center}
   .dim.top:before,.dim.top:after{width:64px}
 
-  /* reserved 16:9 window for the live screen capture (grokdev's desktop).
-     The HUD keeps this rectangle empty — in OBS, drop the display/window
-     capture source exactly over it: x502 y156, 430×242 (16:9) in scene px. */
-  .screenfeed{position:absolute;left:502px;top:156px;width:430px;height:242px;z-index:4;
+  /* reserved window for the live screen capture (grokdev's desktop).
+     Mirrors the chart card exactly (top 84, height 264) so the two sit in
+     parallel. In OBS, drop a 16:9 display capture over it: x494 y84, 452 wide
+     (the 16:9 content is 452×254 — five px of letterbox top and bottom). */
+  .screenfeed{position:absolute;left:494px;top:84px;width:452px;height:264px;z-index:4;
     border:1px solid var(--hair2);background:
     repeating-linear-gradient(45deg, rgba(150,180,220,.03) 0 10px, transparent 10px 20px),
     rgba(6,9,14,.55);
@@ -128,7 +129,7 @@
 
   /* unit readouts: one horizontal strip across the top of the middle lane —
      the unit gets the whole space below to itself, no text over the model */
-  .readouts{position:absolute;left:502px;right:348px;top:96px;z-index:4;display:flex;
+  .readouts{position:absolute;left:494px;right:334px;top:360px;z-index:4;display:flex;
     justify-content:space-between;gap:14px;padding-bottom:12px;border-bottom:1px solid var(--hair);
     pointer-events:none}
   .ro{position:relative;font-family:var(--mono);font-size:8.5px;letter-spacing:.16em;color:var(--dim);text-transform:uppercase;white-space:nowrap}
@@ -278,8 +279,11 @@ import { mountCoinChart } from "/coin-chart.js";
 
 const view = mountScene(document.getElementById("bot"), { transparent: true });
 view.bot.group.position.x = 0.40;
-view.bot.group.position.y = -1.06;
+view.bot.group.position.y = -1.03;
 view.bot.group.scale.setScalar(0.40);
+// pull the shadow floor up under the shrunken unit — at the default depth the
+// shadow blob rendered below the HUD's bottom line
+view.ground.position.y = -1.72;
 window.__view = view;
 
 const $ = s => document.querySelector(s);

@@ -167,5 +167,8 @@ export function mountScene(canvas, { transparent = false } = {}) {
   }
   resize(); addEventListener("resize", resize); loop();
 
-  return { setSpeaking: (v) => { speaking = v; }, resize, scene, camera, renderer, bot };
+  // ground is exposed so a scene that repositions/scales the bot can pull the
+  // shadow plane up to sit right under it (a low-hanging shadow reads as the
+  // model bleeding past the HUD's bottom line)
+  return { setSpeaking: (v) => { speaking = v; }, resize, scene, camera, renderer, bot, ground };
 }
