@@ -1,0 +1,548 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=1280, initial-scale=1" />
+<title>grokdev — live</title>
+<style>
+  /* ------------------------------------------------------------------
+     GROKDEV DEV-TERMINAL HUD — 1280x800, on camera.
+     Same instrument layout as the company-lab scene (chart + dev log +
+     vitals left, unit centre, chat right, telemetry strip bottom) but
+     rendered as a black engineering terminal: hairlines, mono labels,
+     one cold accent. The dossier website, but alive.
+  ------------------------------------------------------------------ */
+  :root{
+    --void:#050607; --panel:rgba(12,15,20,.78); --ink:#d6dde8; --dim:#6b7686; --dim2:#454e5c;
+    --hair:rgba(150,180,220,.14); --hair2:rgba(150,180,220,.30);
+    --cold:#8fd0ff; --go:#7fd8ab; --hot:#ff6b4a; --amber:#d8b06a;
+    --mono:"SF Mono",ui-monospace,Menlo,Consolas,"Roboto Mono",monospace;
+    --sans:"Inter","SF Pro Display",-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{width:100vw;height:100vh;overflow:hidden;background:var(--void);color:var(--ink);font-family:var(--sans)}
+
+  /* the scene is authored at a fixed 1280×800 (OBS browser source). In a normal
+     browser window #scenebox scales to fit — at exactly 1280×800 it's 1:1. */
+  #scenebox{position:absolute;width:1280px;height:800px;overflow:hidden;transform-origin:top left;background:
+    repeating-linear-gradient(0deg, rgba(150,180,220,.028) 0 1px, transparent 1px 40px),
+    repeating-linear-gradient(90deg, rgba(150,180,220,.028) 0 1px, transparent 1px 40px),
+    radial-gradient(58% 72% at 68% 56%, rgba(70,120,190,.10) 0%, rgba(40,70,120,.04) 42%, transparent 68%),
+    radial-gradient(120% 90% at 50% 8%, #0a0d12 0%, #06080c 55%, #040507 100%)}
+
+  /* terminal frame: hairline border + corner registration marks */
+  .frame{position:absolute;inset:14px;border:1px solid var(--hair);border-radius:2px;pointer-events:none;z-index:1}
+  .reg{position:absolute;width:16px;height:16px;border:1.5px solid var(--hair2);z-index:1;pointer-events:none}
+  .reg.tl{top:8px;left:8px;border-right:0;border-bottom:0}
+  .reg.tr{top:8px;right:8px;border-left:0;border-bottom:0}
+  .reg.bl{bottom:8px;left:8px;border-right:0;border-top:0}
+  .reg.br{bottom:8px;right:8px;border-left:0;border-top:0}
+
+  /* top bar */
+  .brand{position:absolute;top:28px;left:34px;display:flex;align-items:center;gap:10px;z-index:5;
+    font-family:var(--mono);font-weight:500;font-size:20px;letter-spacing:.02em;color:#eef3fa}
+  .brand .mk{width:22px;height:22px;position:relative}
+  .brand .mk:before{content:"";position:absolute;inset:2px;border:1.5px solid var(--cold);transform:rotate(45deg)}
+  .brand .mk:after{content:"";position:absolute;left:50%;top:14%;width:1.5px;height:72%;margin-left:-.75px;background:var(--cold)}
+  .brand .tld{color:var(--dim);font-weight:400}
+  .chip{font-family:var(--mono);font-size:10.5px;letter-spacing:.18em;color:var(--dim);
+    border:1px solid var(--hair);background:var(--panel);border-radius:2px;padding:5px 11px;text-transform:uppercase}
+  .topchips{position:absolute;top:30px;left:280px;display:flex;gap:8px;z-index:5;align-items:center}
+  .chip.phase{color:var(--cold);border-color:rgba(143,208,255,.35)}
+  .chip.obs{display:flex;align-items:center;gap:7px}
+  .chip.obs .d{width:6px;height:6px;border-radius:50%;background:var(--go);animation:pulse 1.6s infinite}
+  .audio{position:absolute;top:26px;right:140px;z-index:6;display:flex;align-items:center;gap:8px;
+    font-family:var(--mono);font-size:11px;letter-spacing:.1em;cursor:pointer;background:transparent;color:var(--dim);
+    border:1px solid var(--hair2);padding:8px 14px;border-radius:2px;text-transform:uppercase}
+  .audio.on{background:var(--cold);color:var(--void);border-color:var(--cold)}
+  .live{position:absolute;top:26px;right:30px;display:flex;align-items:center;gap:8px;font-family:var(--mono);
+    font-size:12px;letter-spacing:.22em;color:var(--hot);border:1px solid rgba(255,107,74,.35);background:var(--panel);
+    padding:8px 14px;border-radius:2px;z-index:5}
+  .live .d{width:8px;height:8px;border-radius:50%;background:var(--hot);animation:pulse 1.4s infinite}
+  @keyframes pulse{50%{opacity:.25}}
+
+  /* left column — instruments */
+  .chartCard{position:absolute;left:30px;top:84px;width:452px;height:264px;
+    background:var(--panel);border:1px solid var(--hair);border-radius:3px;padding:6px;z-index:4}
+  .chartCard canvas{width:100%;height:100%;display:block}
+
+  .mind{position:absolute;left:30px;top:360px;width:452px;height:206px;
+    background:var(--panel);border:1px solid var(--hair);border-radius:3px;padding:13px 16px;z-index:4;
+    overflow:hidden;display:flex;flex-direction:column}
+  .mind .hd{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+  .mind .hd b{font-family:var(--mono);font-size:10px;letter-spacing:.26em;text-transform:uppercase;
+    color:var(--dim);font-weight:500}
+  .mind .hd .dot{width:6px;height:6px;border-radius:50%;background:var(--cold);animation:pulse 1.6s infinite}
+  .mind .lines{flex:1;overflow:hidden;display:flex;flex-direction:column;gap:6px;justify-content:flex-end}
+  .ml{display:flex;gap:9px;font-size:12.5px;line-height:1.35;opacity:.95}
+  .ml .k{flex:none;width:46px;font-family:var(--mono);font-size:9px;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--cold);padding-top:3px}
+  .ml.ev-tool .k{color:var(--go)} .ml.ev-deploy .k{color:var(--go)}
+  .ml.ev-speak .k{color:var(--ink)} .ml.ev-chat .k{color:var(--amber)}
+  .ml.ev-tweet .k{color:#6aa7e8} .ml.ev-error .k{color:var(--hot)}
+  .ml.ev-info .k{color:var(--dim)} .ml.ev-ask .k{color:var(--cold)}
+  .ml.ev-speak .v{color:var(--ink)}
+  .ml .v{color:#9daebf;overflow-wrap:anywhere}
+  .ml.fresh{animation:fade .5s ease-out}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:.95;transform:none}}
+
+  /* attention monitor — EKG */
+  .vitalsCard{position:absolute;left:30px;top:578px;width:452px;height:92px;
+    background:var(--panel);border:1px solid var(--hair);border-radius:3px;padding:12px 16px;z-index:4}
+  .vitalsCard .hd{display:flex;justify-content:space-between;align-items:center}
+  .vitalsCard .hd b{font-family:var(--mono);font-size:10px;letter-spacing:.26em;text-transform:uppercase;color:var(--dim);font-weight:500}
+  .vitalsCard .bpm{font-family:var(--mono);font-size:12px;color:var(--cold)}
+  #ekg{width:100%;height:44px;display:block;margin-top:6px}
+
+  #stage{position:absolute;inset:0;z-index:2}
+  #bot{width:1280px;height:800px;display:block;position:relative}
+
+  /* reticle brackets around the unit */
+  .bracket{position:absolute;width:26px;height:26px;border:1px solid var(--hair2);z-index:3;pointer-events:none}
+  .bracket.tl{left:640px;top:268px;border-right:0;border-bottom:0}
+  .bracket.tr{left:926px;top:268px;border-left:0;border-bottom:0}
+  .bracket.bl{left:640px;top:576px;border-right:0;border-top:0}
+  .bracket.br{left:926px;top:576px;border-left:0;border-top:0}
+  .dim{position:absolute;z-index:3;font-family:var(--mono);font-size:9.5px;letter-spacing:.3em;color:var(--dim2);pointer-events:none}
+  .dim.top{left:640px;top:252px;width:312px;text-align:center}
+  .dim.top:before,.dim.top:after{content:"";position:absolute;top:7px;height:1px;background:var(--hair2);width:104px}
+  .dim.top:before{left:0} .dim.top:after{right:0}
+
+  /* unit readouts with leader lines, left of the subject */
+  .readouts{position:absolute;left:490px;top:296px;z-index:4;display:flex;flex-direction:column;gap:22px;pointer-events:none}
+  .ro{position:relative;font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;color:var(--dim);text-transform:uppercase}
+  .ro b{display:block;font-size:12.5px;color:var(--ink);letter-spacing:.04em;margin-top:2px;font-weight:500;text-transform:none}
+  .ro:after{content:"";position:absolute;left:100%;top:12px;width:34px;height:1px;
+    background:linear-gradient(90deg, rgba(143,208,255,.5), transparent);margin-left:8px}
+
+  /* chat */
+  .chat{position:absolute;top:84px;right:30px;width:300px;bottom:30px;z-index:4;
+    background:var(--panel);border:1px solid var(--hair);border-radius:3px;padding:16px;overflow:hidden;
+    display:flex;flex-direction:column}
+  .chat h3{margin:0;font-family:var(--mono);font-size:10px;letter-spacing:.26em;text-transform:uppercase;color:var(--dim);font-weight:500;
+    display:flex;align-items:center;gap:8px}
+  .chat h3 .d{width:6px;height:6px;border-radius:50%;background:var(--go)}
+  .msgs{flex:1;overflow:hidden;display:flex;flex-direction:column;gap:10px;justify-content:flex-end;margin:10px 0}
+  .m{font-size:14px;line-height:1.4}
+  .m .u{font-family:var(--mono);font-size:11px;color:var(--cold);font-weight:500;letter-spacing:.04em}
+  .m.me .u{color:var(--go)}
+  .m .b{color:#b6c4d4}
+  .join{display:flex;align-items:center;gap:11px;background:rgba(20,40,32,.7);border:1px solid rgba(30,195,127,.3);
+    border-radius:3px;padding:12px 13px;text-decoration:none;transition:background .18s}
+  .join:hover{background:rgba(24,52,40,.85)}
+  .join .pill{flex:none;width:30px;height:30px;border-radius:3px;background:#1ec37f;
+    display:flex;align-items:center;justify-content:center}
+  .join .pill svg{display:block}
+  .join .t1{font-size:12.5px;color:#dff3ea;font-weight:500;line-height:1.25}
+  .join .t2{font-family:var(--mono);font-size:10.5px;color:#7fd8ab;margin-top:3px;overflow-wrap:anywhere}
+
+  /* caption */
+  .cap{position:absolute;left:490px;right:346px;bottom:112px;z-index:5;
+    border-left:2px solid var(--cold);background:linear-gradient(90deg,rgba(8,14,24,.96),rgba(8,14,24,.78));
+    padding:14px 20px;border-radius:0 3px 3px 0;font-size:19px;line-height:1.4;min-height:24px;color:#f2f7ff;
+    opacity:0;transform:translateY(10px);transition:.28s}
+  .cap.show{opacity:1;transform:none}
+  .cap .who{font-family:var(--mono);font-size:10px;color:var(--cold);letter-spacing:.28em;display:block;margin-bottom:5px;text-transform:uppercase}
+
+  /* telemetry strip across the bottom */
+  .strip{position:absolute;left:30px;right:346px;bottom:30px;z-index:5;display:flex;align-items:stretch;
+    background:var(--panel);border:1px solid var(--hair);border-radius:3px;padding:10px 6px}
+  .cell{flex:1;padding:2px 14px;border-right:1px solid var(--hair)}
+  .cell:last-child{border-right:0}
+  .cell .k{font-family:var(--mono);font-size:8.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim2);white-space:nowrap}
+  .cell .v{font-size:16px;margin-top:2px;white-space:nowrap;color:var(--ink)}
+  .cell .v.cold{color:var(--cold)}
+  .cell .v.mono{font-family:var(--mono);font-size:14.5px;padding-top:2px;font-variant-numeric:tabular-nums}
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.170.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.170.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+<div id="scenebox">
+<div class="frame"></div>
+<span class="reg tl"></span><span class="reg tr"></span><span class="reg bl"></span><span class="reg br"></span>
+
+<div class="brand"><span class="mk"></span>grokdev<span class="tld">·live</span></div>
+<div class="topchips">
+  <span class="chip">AUTONOMOUS DEV</span>
+  <span class="chip phase" id="phase">MODE · OBSERVATION</span>
+  <span class="chip obs"><span class="d"></span>LOOP RUNNING</span>
+</div>
+<button class="audio" id="audioBtn">🔇 enable voice</button>
+<div class="live"><span class="d"></span> LIVE</div>
+
+<div class="chartCard"><canvas id="chart" width="904" height="528"></canvas>
+  <iframe id="chartEmbed" style="display:none;width:100%;height:100%;border:0;border-radius:2px" allow="clipboard-write"></iframe></div>
+
+<div class="mind">
+  <div class="hd"><span class="dot"></span><b>dev log — every decision, live</b></div>
+  <div class="lines" id="mindlines"></div>
+</div>
+
+<div class="vitalsCard">
+  <div class="hd"><b>attention monitor</b><span class="bpm" id="bpm">62 spm</span></div>
+  <canvas id="ekg" width="840" height="88"></canvas>
+</div>
+
+<div id="stage"><canvas id="bot"></canvas></div>
+
+<span class="bracket tl"></span><span class="bracket tr"></span>
+<span class="bracket bl"></span><span class="bracket br"></span>
+<div class="dim top">UNIT FIELD · 1.00u</div>
+
+<div class="readouts">
+  <div class="ro">unit<b>GROKDEV-01 · DEV</b></div>
+  <div class="ro">mode<b id="ro-mood">observing</b></div>
+  <div class="ro">signal noise<b id="ro-noise">nominal</b></div>
+  <div class="ro">conviction<b id="ro-conv">0.64</b></div>
+  <div class="ro">armory<b id="ro-armory">3 armed · 31 rejected</b></div>
+</div>
+
+<div class="chat">
+  <h3><span class="d"></span>chat — pump.fun</h3>
+  <div class="msgs" id="chatlist"></div>
+  <a class="join" id="joinlink" href="https://pump.fun" target="_blank" rel="noopener">
+    <span class="pill">
+      <svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true">
+        <rect x="3.2" y="7.8" width="17.6" height="8.4" rx="4.2" fill="#0f1a14" transform="rotate(-45 12 12)"/>
+        <rect x="3.2" y="7.8" width="8.8" height="8.4" rx="4.2" fill="#eafff4" transform="rotate(-45 12 12)"/>
+      </svg>
+    </span>
+    <div>
+      <div class="t1">talk to the dev — chat on pump.fun →</div>
+      <div class="t2" id="joinurl">pump.fun · $GROKDEV</div>
+    </div>
+  </a>
+</div>
+
+<div class="cap" id="cap"><span class="who">grokdev · autonomous memecoin dev</span><span id="captext"></span></div>
+
+<div class="strip" id="foot">
+  <div class="cell"><div class="k">session clock</div><div class="v mono" id="uptime">T+00:00</div></div>
+  <div class="cell"><div class="k">ticks</div><div class="v mono" id="ticks">—</div></div>
+  <div class="cell"><div class="k">token</div><div class="v cold" id="coin">—</div></div>
+  <div class="cell"><div class="k">treasury</div><div class="v" id="sol">—</div></div>
+  <div class="cell"><div class="k">burn today</div><div class="v" id="burn">—</div></div>
+  <div class="cell"><div class="k">status</div><div class="v" id="stat">on air</div></div>
+</div>
+</div><!-- /scenebox -->
+
+<script>
+// fit the fixed 1280×800 scene into whatever window is viewing it
+(function () {
+  const box = document.getElementById("scenebox");
+  function fit() {
+    const s = Math.min(innerWidth / 1280, innerHeight / 800);
+    box.style.transform = `scale(${s})`;
+    box.style.left = (innerWidth - 1280 * s) / 2 + "px";
+    box.style.top = (innerHeight - 800 * s) / 2 + "px";
+  }
+  fit();
+  addEventListener("resize", fit);
+})();
+</script>
+
+<script type="module">
+import { mountScene } from "/grokdev-model.js";
+import { mountCoinChart } from "/coin-chart.js";
+
+const view = mountScene(document.getElementById("bot"), { transparent: true });
+view.bot.group.position.x = 0.83;
+view.bot.group.position.y = -0.18;
+view.bot.group.scale.setScalar(0.46);
+window.__view = view;
+
+const $ = s => document.querySelector(s);
+const esc = x => String(x || "").replace(/[<>&]/g, c => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[c]));
+async function j(u) { try { return await (await fetch(u, { cache: "no-store" })).json(); } catch { return null; } }
+
+// Chart: our own canvas by default. `?chart=embed` swaps in GeckoTerminal's
+// TradingView widget instead — try it in OBS; it renders blank in some embedded
+// browsers, which is why it isn't the default.
+const useEmbed = new URLSearchParams(location.search).get("chart") === "embed";
+if (useEmbed) {
+  (async () => {
+    const d = await j("/api/ohlcv");
+    if (!d?.pair) return;
+    const f = $("#chartEmbed");
+    f.src = `https://www.geckoterminal.com/solana/pools/${d.pair}?embed=1&info=0&swaps=0&light_chart=1&resolution=5m`;
+    f.style.display = "block";
+    $("#chart").style.display = "none";
+  })();
+} else {
+  mountCoinChart(document.getElementById("chart"), {
+    getCoin: async () => {
+      const s = await j("/api/state");
+      return s?.coin ? { mint: s.coin.mint, symbol: s.coin.symbol } : null;
+    },
+  });
+}
+
+// ---------- chat panel (backend events + pump.fun poller file) ----------
+const chatBox = $("#chatlist");
+const seen = new Set();
+function addChat(user, body, me) {
+  const key = user + " " + body;
+  if (seen.has(key)) return;
+  seen.add(key); if (seen.size > 500) seen.delete(seen.values().next().value);
+  const el = document.createElement("div");
+  el.className = "m" + (me ? " me" : "");
+  el.innerHTML = `<span class="u">${esc(user)}</span> <span class="b">${esc(body)}</span>`;
+  chatBox.appendChild(el);
+  while (chatBox.children.length > 10) chatBox.removeChild(chatBox.firstChild);
+}
+function chatFromEvent(text) {
+  if (text.startsWith("→ chat: ")) { addChat("grokdev", text.slice(8), true); return; }
+  const i = text.indexOf(": ");
+  if (i > 0 && i < 30) addChat(text.slice(0, i), text.slice(i + 2), false);
+}
+
+// ---------- voice: real-audio TTS via backend proxy + caption + animation ----------
+let audioOn = false;
+let excite = 0; // the attention monitor runs hot while the dev is talking
+const btn = $("#audioBtn");
+const ttsUrl = t => `/api/tts?text=${encodeURIComponent(t)}`;
+const player = new Audio();
+player.preload = "auto";
+let queue = [];
+let playing = false;
+// OBS reloads the browser source on scene changes and loses the click. It also
+// runs with autoplay allowed, so restore the previous choice and just play.
+try {
+  if (localStorage.getItem("gd_audio") === "1") {
+    audioOn = true;
+    btn.className = "audio on";
+    btn.textContent = "🔊 voice on";
+    player.play().catch(() => {});
+  }
+} catch {}
+
+btn.onclick = () => {
+  audioOn = !audioOn;
+  try { localStorage.setItem("gd_audio", audioOn ? "1" : "0"); } catch {}
+  btn.className = "audio" + (audioOn ? " on" : "");
+  btn.textContent = audioOn ? "🔊 voice on" : "🔇 enable voice";
+  if (audioOn) { player.play().catch(() => {}); speak("voice online. the dev log now has audio. the reasoning was always free."); }
+  else { queue = []; player.pause(); try { speechSynthesis.cancel(); } catch {} }
+};
+
+let capTimer = null;
+function showCap(text, ms) {
+  $("#captext").textContent = text;
+  $("#cap").classList.add("show");
+  clearTimeout(capTimer);
+  capTimer = setTimeout(() => { $("#cap").classList.remove("show"); view.setSpeaking(false); }, ms);
+}
+function pickVoice() {
+  try {
+    const vs = speechSynthesis.getVoices();
+    return vs.find(v => /en/i.test(v.lang)) || null;
+  } catch { return null; }
+}
+function fallbackSpeak(text) {
+  // OBS's embedded browser has no speechSynthesis — release the queue and move on.
+  if (!("speechSynthesis" in window)) { release(); return; }
+  try {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    const v = pickVoice(); if (v) u.voice = v;
+    u.rate = 1.04; u.pitch = 0.95;
+    u.onstart = () => view.setSpeaking(true);
+    u.onend = release;
+    u.onerror = release;
+    speechSynthesis.speak(u);
+  } catch { release(); }
+}
+
+// Single place that unlocks the queue — every failure path must go through it,
+// or one bad clip silences the stream permanently.
+let watchdog = null;
+function release() {
+  clearTimeout(watchdog); watchdog = null;
+  playing = false;
+  view.setSpeaking(false);
+  next();
+}
+
+function next() {
+  if (playing || !queue.length) return;
+  const text = queue.shift();
+  playing = true;
+  view.setSpeaking(true);
+
+  let settled = false;
+  const finish = () => { if (settled) return; settled = true; release(); };
+  const retryOrFallback = () => {
+    if (settled) return;
+    if (!next._retried) {           // one retry: transient proxy/network blips
+      next._retried = true; settled = true;
+      clearTimeout(watchdog); playing = false;
+      queue.unshift(text); setTimeout(next, 1200);
+      return;
+    }
+    next._retried = false;
+    fallbackSpeakSafe(text, finish);
+  };
+  const fallbackSpeakSafe = (t, done) => { settled = true; clearTimeout(watchdog); playing = false; view.setSpeaking(false); fallbackSpeak(t); };
+
+  player.onended = () => { next._retried = false; finish(); };
+  player.onerror = retryOrFallback;
+  player.src = ttsUrl(text);
+  player.play().then(() => { next._retried = false; }).catch(retryOrFallback);
+
+  // hard ceiling: nothing may hold the queue longer than this
+  clearTimeout(watchdog);
+  watchdog = setTimeout(() => { if (!settled) { settled = true; release(); } },
+    Math.min(30000, 8000 + text.length * 90));
+}
+function speak(text) {
+  const est = Math.min(9000, Math.max(2400, text.length * 60));
+  showCap(text, est);
+  excite = Date.now() + est;
+  if (!audioOn) { view.setSpeaking(true); setTimeout(() => view.setSpeaking(false), est); return; }
+  queue.push(text);
+  if (queue.length > 4) queue = queue.slice(-4);
+  next();
+}
+
+// ---------- dev log: everything it thinks, calls and says ----------
+const mindBox = $("#mindlines");
+const TOOL_LABEL = {
+  get_status: "checking system vitals", read_stream_chat: "reading the room",
+  read_x: "scanning X for acceleration", web_fetch: "reading the internet", post_tweet: "publishing a take",
+  send_chat: "typing in chat", speak: "about to say something", remember: "writing to the journal",
+  set_goals: "revising the objectives", ask_human: "escalating to its human",
+  claim_creator_fees: "claiming creator fees", buy_token: "deploying capital", sell_token: "cutting a position",
+  quote_price: "checking a price", launch_coin: "DEPLOYING A TOKEN", message_dev: "sending a private memo",
+};
+function pushMind(kind, text) {
+  const el = document.createElement("div");
+  el.className = "ml fresh ev-" + kind;
+  el.innerHTML = `<span class="k">${esc(kind)}</span><span class="v">${esc(text)}</span>`;
+  mindBox.appendChild(el);
+  while (mindBox.children.length > 5) mindBox.removeChild(mindBox.firstChild);
+  setTimeout(() => el.classList.remove("fresh"), 600);
+}
+function mindFromEvent(e) {
+  const t = e.type;
+  if (t === "hello") return;
+  if (t === "tool") {
+    const name = String(e.text).split("(")[0];
+    pushMind("tool", TOOL_LABEL[name] || name.replace(/_/g, " "));
+    return;
+  }
+  const clip = (n) => e.text.length > n ? e.text.slice(0, n) + "…" : e.text;
+  if (t === "think") pushMind("think", e.text.replace(/^tick #?/i, "loop iteration #"));
+  else if (t === "act") pushMind("act", clip(190));
+  else if (t === "speak") pushMind("speak", clip(190));
+  else if (t === "chat") pushMind("chat", clip(150));
+  else if (t === "tweet") pushMind("tweet", clip(150));
+  else if (t === "ask") pushMind("ask", clip(150));
+  else if (t === "deploy") pushMind("deploy", clip(150));
+  else if (t === "error") pushMind("error", clip(140));
+  else if (t === "info") pushMind("info", clip(140));
+}
+
+// ---------- live event stream from the agent ----------
+function handleEvent(e) {
+  if (e.type === "chat") chatFromEvent(e.text);
+  else if (e.type === "speak" || e.type === "deploy") speak(e.text);
+  mindFromEvent(e);
+}
+async function hydrate() {
+  const s = await j("/api/state");
+  if (!s) return;
+  $("#sol").textContent = (s.sol ?? 0).toFixed(3) + " ◎";
+  $("#burn").textContent = (s.solSpentToday ?? 0).toFixed(3) + " ◎";
+  $("#ticks").textContent = s.tick ?? "—";
+  $("#coin").textContent = s.coin ? ("$" + s.coin.symbol) : "not deployed";
+  $("#phase").textContent = s.coin ? "MODE · OPERATIONS" : "MODE · OBSERVATION";
+  // CTA → the coin's pump.fun page. Clickable in a browser; on stream the short
+  // address stays readable so viewers can find it themselves.
+  if (s.coin?.mint) {
+    $("#joinlink").href = `https://pump.fun/coin/${s.coin.mint}`;
+    $("#joinurl").textContent = `pump.fun/coin/${s.coin.mint.slice(0, 6)}…${s.coin.mint.slice(-4)}`;
+  }
+  return s;
+}
+(async () => {
+  const s = await hydrate();
+  // chat history from the DB (survives restarts; the event ring alone loses it)
+  const hist = await j("/api/chat?limit=25");
+  for (const m of (hist?.messages || [])) chatFromEvent(m.text);
+  for (const e of (s?.events || []).slice(-20)) mindFromEvent(e); // seed the feed
+  const es = new EventSource("/api/feed");
+  es.onmessage = ev => { try { handleEvent(JSON.parse(ev.data)); } catch {} };
+  es.onerror = () => {};
+})();
+setInterval(hydrate, 10000);
+
+// pump.fun room chat (poller file), merged in when the rig runs
+async function pollPumpChat() {
+  const d = await j("/stream/hud/chat.json");
+  for (const m of (d?.messages || []).slice(-12)) addChat(m.user, m.body, !!m.me);
+}
+pollPumpChat(); setInterval(pollPumpChat, 3000);
+
+// ---------- session clock ----------
+const t0 = Date.now();
+setInterval(() => {
+  const s = Math.floor((Date.now() - t0) / 1000);
+  const h = Math.floor(s / 3600), m = String(Math.floor((s % 3600) / 60)).padStart(2, "0"), ss = String(s % 60).padStart(2, "0");
+  $("#uptime").textContent = h > 0 ? `T+${h}:${m}:${ss}` : `T+${m}:${ss}`;
+}, 1000);
+
+// ---------- unit readouts: slow random-walk metrics ----------
+const MOODS = ["observing", "skeptical", "locked in", "rejecting things", "first-principles", "cooking"];
+const NOISE = ["nominal", "elevated", "filtered", "manufactured", "saturated"];
+let conv = 0.64;
+setInterval(() => {
+  if (Math.random() < 0.5) $("#ro-mood").textContent = MOODS[Math.floor(Math.random() * MOODS.length)];
+  if (Math.random() < 0.35) $("#ro-noise").textContent = NOISE[Math.floor(Math.random() * NOISE.length)];
+  conv = Math.min(0.94, Math.max(0.12, conv + (Math.random() - 0.48) * 0.03));
+  $("#ro-conv").textContent = conv.toFixed(2);
+}, 5000);
+
+// ---------- attention monitor: EKG that runs hot while speaking ----------
+const ekg = $("#ekg");
+const ectx = ekg.getContext("2d");
+const W = ekg.width, H = ekg.height, MID = H * 0.58;
+const buf = new Array(W).fill(MID);
+let ph = 0;
+function ekgStep() {
+  const hot = Date.now() < excite;
+  ph += hot ? 0.16 : 0.07;
+  // baseline wander + periodic beat
+  const beat = Math.pow(Math.max(0, Math.sin(ph)), 12) * (hot ? 34 : 22);
+  const wig = Math.sin(ph * 3.7) * 2 + (Math.random() - 0.5) * (hot ? 4 : 2);
+  buf.push(MID - beat + wig); buf.shift();
+  ectx.clearRect(0, 0, W, H);
+  ectx.beginPath();
+  ectx.moveTo(0, buf[0]);
+  for (let x = 1; x < W; x++) ectx.lineTo(x, buf[x]);
+  ectx.strokeStyle = hot ? "#8fd0ff" : "#3f5a75";
+  ectx.lineWidth = 2;
+  ectx.stroke();
+  // leading dot
+  ectx.fillStyle = "#8fd0ff";
+  ectx.beginPath(); ectx.arc(W - 2, buf[W - 1], 3.2, 0, Math.PI * 2); ectx.fill();
+  requestAnimationFrame(ekgStep);
+}
+ekgStep();
+setInterval(() => {
+  const hot = Date.now() < excite;
+  $("#bpm").textContent = (hot ? 96 + Math.floor(Math.random() * 9) : 58 + Math.floor(Math.random() * 7)) + " spm";
+}, 2000);
+
+// Chat here is READ-ONLY: viewers talk in the coin's pump.fun chat, the
+// poller captures those messages and they're stored for context.
+</script>
+</body>
+</html>

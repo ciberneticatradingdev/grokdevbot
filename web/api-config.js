@@ -17,9 +17,10 @@ export const API = (() => {
 })();
 
 // where "watch live" should send people. At coin launch, switch to the
-// pump.fun livestream page; until then it's the stream scene itself (/live route
-// on the backend, or /stream/hud/scene.html locally).
-export const STREAM_URL = "/stream/hud/scene.html";
+// pump.fun livestream page; until then it's the stream scene itself.
+// /live works everywhere: web/live.html on Vercel (static demo), and the same
+// file served by the backend locally/on Railway (with the real feed).
+export const STREAM_URL = "/live";
 
 // the agent's X account — empty until the humans hand over the keys.
 export const X_URL = "";

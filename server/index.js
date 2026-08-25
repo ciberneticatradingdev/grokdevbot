@@ -183,6 +183,10 @@ app.get("/", (req, res, next) => {
   }
   next();
 });
+// /live → the same scene (matches the static web/live.html route on Vercel)
+app.get("/live", (_req, res) => {
+  res.sendFile(path.join(__dirname, "..", "stream", "hud", "scene.html"));
+});
 // ---- chat history ----
 // Straight from the DB so the HUD's chat panel repopulates after any restart
 // (the in-memory event ring is mostly think/act/tool, so chat scrolls out of it).
