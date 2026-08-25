@@ -56,10 +56,11 @@ export function createGrokdev() {
     rig.add(holder);
     return holder;
   }
-  /* two clean capsules of the same family, like the icon:
-     similar length, left ~40% wider and slightly lower, both slant "\",
-     right a bit steeper. sized via geometry, not scale. */
-  const eyeL = makeEye(0.24, 0.42, -0.28, -0.16, 0.35);
+  /* two clean capsules of the same family, like the icon: same width, same
+     "\" slant, left one slightly lower. The left eye faces the camera almost
+     head-on while the right is foreshortened by the curvature, so equal radii
+     is what actually reads as equal width on screen. */
+  const eyeL = makeEye(0.175, 0.46, -0.28, -0.16, 0.52);
   const eyeR = makeEye(0.17, 0.48, 0.52, 0.28, 0.55);
 
   /* ---------- animation state (t in seconds) ---------- */

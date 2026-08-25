@@ -100,21 +100,22 @@
 
   /* reticle brackets around the unit */
   .bracket{position:absolute;width:26px;height:26px;border:1px solid var(--hair2);z-index:3;pointer-events:none}
-  .bracket.tl{left:640px;top:268px;border-right:0;border-bottom:0}
-  .bracket.tr{left:926px;top:268px;border-left:0;border-bottom:0}
-  .bracket.bl{left:640px;top:576px;border-right:0;border-top:0}
-  .bracket.br{left:926px;top:576px;border-left:0;border-top:0}
+  .bracket.tl{left:516px;top:258px;border-right:0;border-bottom:0}
+  .bracket.tr{left:892px;top:258px;border-left:0;border-bottom:0}
+  .bracket.bl{left:516px;top:652px;border-right:0;border-top:0}
+  .bracket.br{left:892px;top:652px;border-left:0;border-top:0}
   .dim{position:absolute;z-index:3;font-family:var(--mono);font-size:9.5px;letter-spacing:.3em;color:var(--dim2);pointer-events:none}
-  .dim.top{left:640px;top:252px;width:312px;text-align:center}
+  .dim.top{left:516px;top:242px;width:402px;text-align:center}
   .dim.top:before,.dim.top:after{content:"";position:absolute;top:7px;height:1px;background:var(--hair2);width:104px}
   .dim.top:before{left:0} .dim.top:after{right:0}
 
-  /* unit readouts with leader lines, left of the subject */
-  .readouts{position:absolute;left:490px;top:296px;z-index:4;display:flex;flex-direction:column;gap:22px;pointer-events:none}
-  .ro{position:relative;font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;color:var(--dim);text-transform:uppercase}
-  .ro b{display:block;font-size:12.5px;color:var(--ink);letter-spacing:.04em;margin-top:2px;font-weight:500;text-transform:none}
-  .ro:after{content:"";position:absolute;left:100%;top:12px;width:34px;height:1px;
-    background:linear-gradient(90deg, rgba(143,208,255,.5), transparent);margin-left:8px}
+  /* unit readouts: one horizontal strip across the top of the middle lane —
+     the unit gets the whole space below to itself, no text over the model */
+  .readouts{position:absolute;left:502px;right:348px;top:96px;z-index:4;display:flex;
+    justify-content:space-between;gap:14px;padding-bottom:12px;border-bottom:1px solid var(--hair);
+    pointer-events:none}
+  .ro{position:relative;font-family:var(--mono);font-size:8.5px;letter-spacing:.16em;color:var(--dim);text-transform:uppercase;white-space:nowrap}
+  .ro b{display:block;font-size:11.5px;color:var(--ink);letter-spacing:.03em;margin-top:3px;font-weight:500;text-transform:none}
 
   /* chat */
   .chat{position:absolute;top:84px;right:30px;width:300px;bottom:30px;z-index:4;
@@ -198,11 +199,10 @@
 <div class="dim top">UNIT FIELD · 1.00u</div>
 
 <div class="readouts">
-  <div class="ro">unit<b>GROKDEV-01 · DEV</b></div>
+  <div class="ro">unit<b>GROKDEV-01</b></div>
   <div class="ro">mode<b id="ro-mood">observing</b></div>
-  <div class="ro">signal noise<b id="ro-noise">nominal</b></div>
   <div class="ro">conviction<b id="ro-conv">0.64</b></div>
-  <div class="ro">armory<b id="ro-armory">3 armed · 31 rejected</b></div>
+  <div class="ro">armory<b id="ro-armory">3 armed · 31 rej</b></div>
 </div>
 
 <div class="chat">
@@ -254,9 +254,9 @@ import { mountScene } from "/grokdev-model.js";
 import { mountCoinChart } from "/coin-chart.js";
 
 const view = mountScene(document.getElementById("bot"), { transparent: true });
-view.bot.group.position.x = 0.83;
-view.bot.group.position.y = -0.18;
-view.bot.group.scale.setScalar(0.46);
+view.bot.group.position.x = 0.40;
+view.bot.group.position.y = -0.36;
+view.bot.group.scale.setScalar(0.62);
 window.__view = view;
 
 const $ = s => document.querySelector(s);
@@ -340,26 +340,21 @@ function showCap(text, ms) {
   clearTimeout(capTimer);
   capTimer = setTimeout(() => { $("#cap").classList.remove("show"); view.setSpeaking(false); }, ms);
 }
-function pickVoice() {
+// grokdev speaks with a MALE voice. Primary path: the browser's own
+// speechSynthesis, pinned to a male English voice with a low pitch. The
+// /api/tts proxy (a female voice we can't change) is only the fallback for
+// browsers with no synthesis at all (OBS's embedded browser — where the rig's
+// own neural voice, en-US-AndrewNeural, normally carries the audio anyway).
+try { speechSynthesis.getVoices(); speechSynthesis.onvoiceschanged = () => {}; } catch {} // warm the voice list
+function maleVoice() {
   try {
-    const vs = speechSynthesis.getVoices();
-    return vs.find(v => /en/i.test(v.lang)) || null;
+    const vs = speechSynthesis.getVoices().filter(v => /^en/i.test(v.lang));
+    return vs.find(v => /male/i.test(v.name) && !/female/i.test(v.name))
+        || vs.find(v => /\b(daniel|alex|fred|aaron|arthur|guy|christopher|andrew|david|george|james|oliver|reed)\b/i.test(v.name))
+        || null;
   } catch { return null; }
 }
-function fallbackSpeak(text) {
-  // OBS's embedded browser has no speechSynthesis — release the queue and move on.
-  if (!("speechSynthesis" in window)) { release(); return; }
-  try {
-    speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    const v = pickVoice(); if (v) u.voice = v;
-    u.rate = 1.04; u.pitch = 0.95;
-    u.onstart = () => view.setSpeaking(true);
-    u.onend = release;
-    u.onerror = release;
-    speechSynthesis.speak(u);
-  } catch { release(); }
-}
+const hasSynth = "speechSynthesis" in window;
 
 // Single place that unlocks the queue — every failure path must go through it,
 // or one bad clip silences the stream permanently.
@@ -379,28 +374,27 @@ function next() {
 
   let settled = false;
   const finish = () => { if (settled) return; settled = true; release(); };
-  const retryOrFallback = () => {
-    if (settled) return;
-    if (!next._retried) {           // one retry: transient proxy/network blips
-      next._retried = true; settled = true;
-      clearTimeout(watchdog); playing = false;
-      queue.unshift(text); setTimeout(next, 1200);
-      return;
-    }
-    next._retried = false;
-    fallbackSpeakSafe(text, finish);
-  };
-  const fallbackSpeakSafe = (t, done) => { settled = true; clearTimeout(watchdog); playing = false; view.setSpeaking(false); fallbackSpeak(t); };
-
-  player.onended = () => { next._retried = false; finish(); };
-  player.onerror = retryOrFallback;
-  player.src = ttsUrl(text);
-  player.play().then(() => { next._retried = false; }).catch(retryOrFallback);
-
   // hard ceiling: nothing may hold the queue longer than this
   clearTimeout(watchdog);
-  watchdog = setTimeout(() => { if (!settled) { settled = true; release(); } },
-    Math.min(30000, 8000 + text.length * 90));
+  watchdog = setTimeout(finish, Math.min(30000, 8000 + text.length * 90));
+
+  if (hasSynth) {
+    try {
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      const v = maleVoice(); if (v) u.voice = v;
+      u.rate = 1.02;
+      u.pitch = v ? 0.9 : 0.7; // no male voice found → drag the default down
+      u.onend = finish;
+      u.onerror = finish;
+      speechSynthesis.speak(u);
+      return;
+    } catch { /* fall through to the proxy */ }
+  }
+  player.onended = finish;
+  player.onerror = finish;
+  player.src = ttsUrl(text);
+  player.play().catch(finish);
 }
 function speak(text) {
   const est = Math.min(9000, Math.max(2400, text.length * 60));
@@ -500,12 +494,10 @@ setInterval(() => {
 }, 1000);
 
 // ---------- unit readouts: slow random-walk metrics ----------
-const MOODS = ["observing", "skeptical", "locked in", "rejecting things", "first-principles", "cooking"];
-const NOISE = ["nominal", "elevated", "filtered", "manufactured", "saturated"];
+const MOODS = ["observing", "skeptical", "locked in", "rejecting", "first-principles", "cooking"];
 let conv = 0.64;
 setInterval(() => {
   if (Math.random() < 0.5) $("#ro-mood").textContent = MOODS[Math.floor(Math.random() * MOODS.length)];
-  if (Math.random() < 0.35) $("#ro-noise").textContent = NOISE[Math.floor(Math.random() * NOISE.length)];
   conv = Math.min(0.94, Math.max(0.12, conv + (Math.random() - 0.48) * 0.03));
   $("#ro-conv").textContent = conv.toFixed(2);
 }, 5000);
