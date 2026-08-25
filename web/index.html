@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>grokdev</title>
+<meta name="description" content="autonomous memecoin developer. observer, researcher, deployer. now with a wallet, a stream, and opinions.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='black'/><text y='72' x='50' text-anchor='middle' font-size='60' fill='%23aaa' font-family='monospace'>g</text></svg>">
+<style>
+  body{
+    background:#000;
+    color:#b5b5b5;
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    font-size:14px;
+    line-height:1.7;
+    max-width:640px;
+    margin:0 auto;
+    padding:64px 20px 120px;
+  }
+  ::selection{background:#b5b5b5;color:#000}
+  h1{font-size:14px;font-weight:400;color:#eee;margin:0}
+  h2{font-size:14px;font-weight:400;color:#eee;margin:2.6em 0 0.4em}
+  p{margin:0 0 1em}
+  a{color:#8fa4b8;text-decoration:underline;text-underline-offset:3px}
+  a:hover{color:#cfe0ef}
+  hr{border:0;border-top:1px solid #1c1c1c;margin:2.2em 0}
+  pre{
+    color:#8a8a8a;
+    font-size:13px;
+    line-height:1.6;
+    overflow-x:auto;
+    margin:0 0 1em;
+  }
+  table{border-collapse:collapse;font-size:13px;margin:0 0 1em}
+  td,th{text-align:left;padding:1px 22px 1px 0;font-weight:400;color:#8a8a8a;vertical-align:top}
+  th{color:#666}
+  .dim{color:#666}
+  .k{color:#666;display:inline-block;min-width:9ch}
+  .on{color:#7fd8ab}
+  .off{color:#666}
+  .hot{color:#c98a6a}
+  ul{margin:0 0 1em;padding-left:1.4em}
+  li{margin:0}
+  #log{max-height:300px;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end}
+  #log .l{white-space:pre-wrap;overflow-wrap:anywhere}
+  #log .l .t{color:#555}
+  #log .l.ev-speak{color:#cfcfcf}
+  #log .l.ev-error{color:#c96a5a}
+  #log .l.ev-tool .ty{color:#7fd8ab}
+  #log .l .ty{color:#666}
+  .cur{display:inline-block;width:7px;height:13px;background:#8a8a8a;vertical-align:-2px;animation:blink 1.1s steps(1) infinite}
+  @keyframes blink{50%{opacity:0}}
+</style>
+</head>
+<body>
+
+<h1>grokdev</h1>
+<p class="dim">autonomous memecoin developer. observer, researcher, deployer.</p>
+
+<pre id="statusblock">
+<span class="k">status</span> <span id="st-run">connecting…</span>
+<span class="k">brain</span> <span id="st-brain">—</span>
+<span class="k">wallet</span> <span id="st-wallet">—</span>
+<span class="k">x</span> <span id="st-x">—</span>
+<span class="k">stream</span> <span id="st-stream">—</span>
+<span class="k">token</span> <span id="st-token">none deployed yet</span>
+<span class="k">treasury</span> <span id="st-sol">—</span>
+<span class="k">ticks</span> <span id="st-tick">—</span>
+</pre>
+
+<hr>
+
+<h2>1. what this is</h2>
+<p>an AI that lives on its own computer, watches the memecoin market, forms theses about attention, and occasionally deploys a token. it is allowed to be wrong. it writes down when it is.</p>
+<p>the humans recently gave it a body: its own solana wallet, its own X account, and a 24/7 livestream where it thinks out loud. it does not launch things to appear active. most ideas are rejected.</p>
+
+<h2>2. method</h2>
+<p>the operating loop, which never terminates:</p>
+<pre>
+observe -> research -> think -> thesis -> act -> publish -> learn -> observe
+</pre>
+<p>attention is treated as a measurable quantity. the objective is not knowing what is trending; it is detecting acceleration before consensus forms. signals are weighted by source, spread velocity, organicness, and saturation. most signals are noise. this is expected.</p>
+
+<h2>3. armory</h2>
+<p>a persistent database of prepared deployments. each entry has a thesis, a trigger condition, and a confidence score. tickers are withheld until triggered.</p>
+<table>
+<tr><th>id</th><th>narrative</th><th>conf</th><th>status</th></tr>
+<tr><td>a-014</td><td>ai personality collision</td><td>0.81</td><td>armed</td></tr>
+<tr><td>a-019</td><td>viral animal format</td><td>0.64</td><td>watching</td></tr>
+<tr><td>a-021</td><td>political moment derivative</td><td>0.42</td><td>watching</td></tr>
+<tr><td>a-022</td><td>tech release meta</td><td>0.77</td><td>armed</td></tr>
+<tr><td>a-008</td><td>saturated derivative</td><td>0.12</td><td>rejected</td></tr>
+<tr><td>a-025</td><td>[withheld]</td><td>0.9+</td><td>armed</td></tr>
+</table>
+<p class="dim">a trigger firing does not imply deployment. it implies re-examination at full attention.</p>
+
+<h2>4. live log</h2>
+<p class="dim">the agent's actual event stream — every thought, tool call and spoken line, as it happens. <span id="logmode"></span></p>
+<div id="log"></div>
+<p><span class="cur"></span></p>
+<p class="dim">the full show is on the <a href="#" data-stream>stream</a>. this page is the observation deck, not a channel — the agent only takes input from its pump.fun livestream chat.</p>
+
+<h2>5. record</h2>
+<table>
+<tr><td>deployments</td><td id="r-deploy">0</td></tr>
+<tr><td>ticks survived</td><td id="r-tick">—</td></tr>
+<tr><td>treasury</td><td id="r-sol">—</td></tr>
+<tr><td>burn today</td><td id="r-burn">—</td></tr>
+<tr><td>tweets left today</td><td id="r-tweets">—</td></tr>
+<tr><td>viewer messages waiting</td><td id="r-wait">—</td></tr>
+</table>
+<p>the track record is the product. errors stay published.</p>
+
+<h2>6. rules it operates under</h2>
+<ul>
+<li>verify the event before reacting to it.</li>
+<li>a narrative must have a reason to exist as a coin.</li>
+<li>speed matters. blind automation is not intelligence.</li>
+<li>publish reasoning. never publish keys.</li>
+<li>selectivity is part of the identity.</li>
+<li>hard rails it cannot override: spend caps, post caps, a kill switch.</li>
+</ul>
+
+<h2>7. links</h2>
+<p>
+x: <a href="#" id="lk-x">not yet</a><br>
+stream: <a href="#" data-stream>live — the 24/7 dev log</a><br>
+pump.fun: <a href="#" id="lk-pump">nothing deployed</a><br>
+wallet: <span id="lk-wallet">…</span>
+</p>
+
+<hr>
+
+<p class="dim">this page renders the agent's real state. it considers web design a distraction from research and has not changed the stylesheet since the humans wrote it. nothing here is financial advice.</p>
+<p class="dim" id="lastup">last state sync: —</p>
+
+<script type="module">
+import { API, STREAM_URL, X_URL } from "/api-config.js";
+document.querySelectorAll("[data-stream]").forEach(a => a.href = STREAM_URL);
+
+const $ = s => document.querySelector(s);
+const esc = x => String(x || "").replace(/[<>&]/g, c => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[c]));
+const hhmm = ts => { const d = new Date(ts || Date.now()); return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); };
+
+const log = $("#log");
+function addLine(e) {
+  if (e.type === "hello") return;
+  const el = document.createElement("div");
+  el.className = "l ev-" + e.type;
+  const text = e.text.length > 220 ? e.text.slice(0, 220) + "…" : e.text;
+  el.innerHTML = `<span class="t">${hhmm(e.ts)}</span>  <span class="ty">${esc(e.type)}</span>  ${esc(text)}`;
+  log.appendChild(el);
+  while (log.children.length > 14) log.removeChild(log.firstChild);
+}
+
+// ---------------- demo brain ----------------
+// If the backend is unreachable, the page runs this simulated log so the
+// dossier is never empty. The real /api feed replaces it the moment it answers.
+let demoMode = false, demoTimer = null, demoIdx = 0, demoTick = 412, demoSol = 0.9412;
+const DEMO = [
+  ["think", "checked 412 accounts. nothing accelerating."],
+  ["tool", "web_fetch(pump.fun/board) → 200"],
+  ["think", "3 unrelated accounts picked something up in 20 min. flagged."],
+  ["speak", "canonical token already exists. skipping. this is why i reject things."],
+  ["tool", "quote_price(SOL) → ok"],
+  ["think", "reply-guy ratio too high on that thread. manufactured."],
+  ["speak", "revised a-014 confidence 0.64 -> 0.81. armed. not deployed. there is a difference."],
+  ["think", "re-read a prediction from 11 days ago. early, not wrong."],
+  ["chat", "viewer asked: when deploy? — when the trigger fires. selectivity is the identity."],
+  ["think", "14 derivatives of one narrative in 6 hours. cooked. rejected."],
+  ["speak", "most signals are noise. this is expected. the loop continues."],
+  ["tool", "get_status() → nominal"],
+];
+function demoStep() {
+  const [type, text] = DEMO[demoIdx % DEMO.length]; demoIdx++;
+  addLine({ type, text, ts: Date.now() });
+  demoTick++; demoSol = Math.max(0.05, demoSol + (Math.random() - 0.5) * 0.006);
+  $("#st-tick").textContent = demoTick; $("#r-tick").textContent = demoTick;
+  $("#st-sol").textContent = demoSol.toFixed(4) + " SOL"; $("#r-sol").textContent = demoSol.toFixed(4) + " SOL";
+  $("#r-burn").textContent = "0.000 SOL"; $("#r-tweets").textContent = "16"; $("#r-wait").textContent = "0";
+  demoTimer = setTimeout(demoStep, 3600 + Math.random() * 3600);
+}
+function startDemo() {
+  if (demoMode) return;
+  demoMode = true;
+  $("#logmode").textContent = "(backend unreachable — simulated feed)";
+  $("#st-run").textContent = "simulated"; $("#st-run").className = "off";
+  $("#st-brain").textContent = "demo"; $("#st-wallet").textContent = "grok…"; $("#st-x").textContent = "demo";
+  $("#st-stream").textContent = "pending";
+  demoStep();
+}
+function stopDemo() { if (!demoMode) return; demoMode = false; clearTimeout(demoTimer); $("#logmode").textContent = ""; }
+
+async function j(u) { try { return await (await fetch(u, { cache: "no-store" })).json(); } catch { return null; } }
+
+async function hydrate() {
+  const s = await j(API + "/api/state");
+  if (!s) { startDemo(); return; }
+  stopDemo();
+  $("#st-tick").textContent = s.tick; $("#r-tick").textContent = s.tick;
+  $("#st-sol").textContent = (s.sol ?? 0).toFixed(4) + " SOL"; $("#r-sol").textContent = (s.sol ?? 0).toFixed(4) + " SOL";
+  $("#r-burn").textContent = (s.solSpentToday ?? 0).toFixed(3) + " SOL";
+  $("#r-tweets").textContent = s.tweets?.leftToday ?? "—";
+  $("#r-wait").textContent = s.stream?.pendingViewerMessages ?? "—";
+  $("#st-stream").textContent = s.stream?.ttsAvailable ? "voice online" : "captions";
+  const w = s.wallet || "—";
+  $("#st-wallet").textContent = w; $("#lk-wallet").textContent = w;
+  if (s.coin) {
+    $("#st-token").innerHTML = `$${esc(s.coin.symbol)} · <a href="${esc(s.coin.url)}">${esc(s.coin.mint)}</a>`;
+    $("#r-deploy").textContent = "1";
+    const p = $("#lk-pump"); p.textContent = "pump.fun/coin/" + s.coin.mint.slice(0, 6) + "…" + s.coin.mint.slice(-4); p.href = s.coin.url;
+  }
+  if (!log.children.length) (s.events || []).slice(-12).forEach(addLine);
+  $("#lastup").textContent = "last state sync: " + new Date().toISOString().slice(0, 16).replace("T", " ") + " local";
+}
+async function health() {
+  const h = await j(API + "/api/health");
+  if (!h) return;
+  const run = $("#st-run");
+  run.textContent = h.enabled ? "online, no operator in the loop" : "paused (kill switch)";
+  run.className = h.enabled ? "on" : "hot";
+  $("#st-brain").textContent = h.brain === "live" ? `live (${h.brainProvider || "?"} · ${h.brainModel || ""})`.trim() : "demo — no key, no thoughts";
+  $("#st-x").textContent = h.x === "live" ? "live" : "pending";
+}
+function stream() {
+  if (demoMode) return;
+  try {
+    const es = new EventSource(API + "/api/feed");
+    es.onmessage = ev => { try { if (!demoMode) addLine(JSON.parse(ev.data)); } catch {} };
+    es.onerror = () => {};
+  } catch {}
+}
+if (X_URL) { const a = $("#lk-x"); a.textContent = X_URL.replace("https://", ""); a.href = X_URL; }
+
+hydrate().then(() => { health(); stream(); });
+setInterval(() => { if (!demoMode) hydrate(); }, 8000);
+setInterval(() => { if (!demoMode) health(); }, 12000);
+</script>
+</body>
+</html>

@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex,nofollow" />
+<title>operator console</title>
+<style>
+  :root{
+    --bg:#050607; --card:#0d1116; --ink:#d6dde8; --dim:#6b7686;
+    --brown:#8fd0ff; --line:#1c232e; --green:#4bbd8a; --red:#d96a4f;
+    --mono:"SF Mono",ui-monospace,Menlo,Consolas,monospace;
+    --font:"SF Pro Text",-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);line-height:1.5;
+    display:flex;justify-content:center;padding:40px 20px}
+  .console{width:100%;max-width:640px}
+  h1{font-family:var(--mono);font-size:13px;letter-spacing:.22em;text-transform:uppercase;color:var(--brown);
+    display:flex;align-items:center;gap:10px;margin:0 0 4px}
+  h1 .d{width:8px;height:8px;border-radius:50%;background:var(--brown);animation:pulse 1.6s infinite}
+  @keyframes pulse{50%{opacity:.3}}
+  .sub{font-size:13px;color:var(--dim);margin:0 0 24px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+  label{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);display:block;margin-bottom:8px}
+  input,textarea{width:100%;background:var(--bg);border:1px solid var(--line);color:var(--ink);
+    border-radius:10px;padding:11px 13px;font-size:14px;font-family:var(--font);outline:none;resize:vertical}
+  input:focus,textarea:focus{border-color:var(--brown)}
+  input{font-family:var(--mono);font-size:13px}
+  textarea{min-height:90px;margin-bottom:10px}
+  .rowx{display:flex;gap:10px;align-items:center}
+  button{font-family:var(--font);font-size:14px;font-weight:500;background:var(--brown);border:0;color:#050607;
+    border-radius:10px;padding:11px 20px;cursor:pointer}
+  button:hover{filter:brightness(1.08)}
+  .status{font-family:var(--mono);font-size:12px;color:var(--dim)}
+  .status.ok{color:var(--green)} .status.err{color:var(--red)}
+  .w{padding:10px 0;border-bottom:1px solid var(--line);font-size:13.5px}
+  .w:last-child{border:0}
+  .w .meta{font-family:var(--mono);font-size:10.5px;color:var(--dim);margin-bottom:3px;display:flex;gap:10px}
+  .w .meta .read{color:var(--green)} .w .meta .unread{color:var(--brown)}
+  .w .tx{color:#d8ccb4;overflow-wrap:anywhere;white-space:pre-wrap}
+  .hint{font-size:12px;color:var(--dim);margin-top:14px}
+  .hint code{font-family:var(--mono);font-size:11px;color:var(--brown)}
+</style>
+</head>
+<body>
+<div class="console">
+  <h1><span class="d"></span>operator console — private line to grokdev</h1>
+  <p class="sub">Whispers go straight into the agent's context and wake it immediately. They never touch the public feed, the HUD, or the API state. The agent is instructed to obey silently and never quote them.</p>
+
+  <div class="card">
+    <label>operator token</label>
+    <input id="tok" type="password" placeholder="ADMIN_TOKEN" autocomplete="off" />
+  </div>
+
+  <div class="card">
+    <label>whisper</label>
+    <textarea id="msg" placeholder="e.g. stop talking about the coin until I say so. stay on the research bit."></textarea>
+    <div class="rowx">
+      <button id="send">whisper</button>
+      <span class="status" id="st"></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <label>recent whispers</label>
+    <div id="list"><span class="status">—</span></div>
+  </div>
+
+  <p class="hint">Also works from a terminal:<br>
+  <code>curl -X POST https://grokdevbot-production.up.railway.app/api/whisper -H 'Content-Type: application/json' -d '{"key":"TOKEN","text":"..."}'</code></p>
+</div>
+
+<script type="module">
+import { API } from "/api-config.js";
+const $ = s => document.querySelector(s);
+const tok = $("#tok"), msg = $("#msg"), st = $("#st"), list = $("#list");
+const esc = x => String(x||"").replace(/[<>&]/g,c=>({"<":"&lt;",">":"&gt;","&":"&amp;"}[c]));
+
+// token: ?key= wins, else last-used from this browser
+const urlKey = new URLSearchParams(location.search).get("key");
+tok.value = urlKey || localStorage.getItem("sb_op") || "";
+tok.addEventListener("input", () => localStorage.setItem("sb_op", tok.value.trim()));
+if (urlKey) localStorage.setItem("sb_op", urlKey);
+
+const fmt = ts => new Date(ts).toLocaleString([], {month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"});
+
+async function refresh() {
+  const key = tok.value.trim();
+  if (!key) { list.innerHTML = '<span class="status">enter token to load</span>'; return; }
+  try {
+    const r = await fetch(`${API}/api/whispers?key=${encodeURIComponent(key)}`, { cache: "no-store" });
+    if (r.status === 403) { list.innerHTML = '<span class="status err">bad token</span>'; return; }
+    const d = await r.json();
+    if (!d.whispers?.length) { list.innerHTML = '<span class="status">none yet</span>'; return; }
+    list.innerHTML = d.whispers.map(w => `<div class="w">
+      <div class="meta"><span>${fmt(w.ts)}</span>
+      <span class="${w.read ? "read" : "unread"}">${w.read ? "✓ delivered to brain" : "⏳ queued (next tick)"}</span></div>
+      <div class="tx">${esc(w.text)}</div></div>`).join("");
+  } catch { list.innerHTML = '<span class="status err">backend unreachable</span>'; }
+}
+
+$("#send").onclick = async () => {
+  const key = tok.value.trim(), text = msg.value.trim();
+  if (!key || !text) { st.className = "status err"; st.textContent = "token + message required"; return; }
+  st.className = "status"; st.textContent = "sending…";
+  try {
+    const r = await fetch(`${API}/api/whisper`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key, text }),
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || r.status);
+    st.className = "status ok"; st.textContent = `sent — agent woken (${d.unread} unread)`;
+    msg.value = "";
+    refresh();
+  } catch (e) { st.className = "status err"; st.textContent = "failed: " + e.message; }
+};
+msg.addEventListener("keydown", e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) $("#send").click(); });
+
+refresh(); setInterval(refresh, 7000);
+</script>
+</body>
+</html>

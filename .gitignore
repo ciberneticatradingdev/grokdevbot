@@ -1,0 +1,7 @@
+.vercel
+.env*
+node_modules/
+server/data/
+OPERATOR-TOKEN.txt
+.wallet-backup.json
+.claude/
