@@ -100,12 +100,12 @@
 
   /* reticle brackets around the unit */
   .bracket{position:absolute;width:26px;height:26px;border:1px solid var(--hair2);z-index:3;pointer-events:none}
-  .bracket.tl{left:516px;top:258px;border-right:0;border-bottom:0}
-  .bracket.tr{left:892px;top:258px;border-left:0;border-bottom:0}
-  .bracket.bl{left:516px;top:652px;border-right:0;border-top:0}
-  .bracket.br{left:892px;top:652px;border-left:0;border-top:0}
+  .bracket.tl{left:540px;top:290px;border-right:0;border-bottom:0}
+  .bracket.tr{left:868px;top:290px;border-left:0;border-bottom:0}
+  .bracket.bl{left:540px;top:614px;border-right:0;border-top:0}
+  .bracket.br{left:868px;top:614px;border-left:0;border-top:0}
   .dim{position:absolute;z-index:3;font-family:var(--mono);font-size:9.5px;letter-spacing:.3em;color:var(--dim2);pointer-events:none}
-  .dim.top{left:516px;top:242px;width:402px;text-align:center}
+  .dim.top{left:540px;top:274px;width:354px;text-align:center}
   .dim.top:before,.dim.top:after{content:"";position:absolute;top:7px;height:1px;background:var(--hair2);width:104px}
   .dim.top:before{left:0} .dim.top:after{right:0}
 
@@ -255,8 +255,8 @@ import { mountCoinChart } from "/coin-chart.js";
 
 const view = mountScene(document.getElementById("bot"), { transparent: true });
 view.bot.group.position.x = 0.40;
-view.bot.group.position.y = -0.36;
-view.bot.group.scale.setScalar(0.62);
+view.bot.group.position.y = -0.34;
+view.bot.group.scale.setScalar(0.50);
 window.__view = view;
 
 const $ = s => document.querySelector(s);
