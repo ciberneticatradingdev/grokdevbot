@@ -100,12 +100,12 @@
 
   /* reticle brackets around the unit */
   .bracket{position:absolute;width:26px;height:26px;border:1px solid var(--hair2);z-index:3;pointer-events:none}
-  .bracket.tl{left:572px;top:452px;border-right:0;border-bottom:0}
-  .bracket.tr{left:836px;top:452px;border-left:0;border-bottom:0}
-  .bracket.bl{left:572px;top:714px;border-right:0;border-top:0}
-  .bracket.br{left:836px;top:714px;border-left:0;border-top:0}
+  .bracket.tl{left:572px;top:424px;border-right:0;border-bottom:0}
+  .bracket.tr{left:836px;top:424px;border-left:0;border-bottom:0}
+  .bracket.bl{left:572px;top:684px;border-right:0;border-top:0}
+  .bracket.br{left:836px;top:684px;border-left:0;border-top:0}
   .dim{position:absolute;z-index:3;font-family:var(--mono);font-size:9.5px;letter-spacing:.3em;color:var(--dim2);pointer-events:none}
-  .dim.top{left:572px;top:436px;width:290px;text-align:center}
+  .dim.top{left:572px;top:408px;width:290px;text-align:center}
   .dim.top:before,.dim.top:after{width:64px}
 
   /* reserved window for the live screen capture (grokdev's desktop).
@@ -279,11 +279,11 @@ import { mountCoinChart } from "/coin-chart.js";
 
 const view = mountScene(document.getElementById("bot"), { transparent: true });
 view.bot.group.position.x = 0.40;
-view.bot.group.position.y = -1.03;
+view.bot.group.position.y = -0.88;
 view.bot.group.scale.setScalar(0.40);
 // pull the shadow floor up under the shrunken unit — at the default depth the
 // shadow blob rendered below the HUD's bottom line
-view.ground.position.y = -1.72;
+view.ground.position.y = -1.56;
 window.__view = view;
 
 const $ = s => document.querySelector(s);
